@@ -87,3 +87,26 @@ class InjectContextResponse(BaseModel):
         description="Formatted string ready to prepend to your LLM system prompt")
     memories_used: int
     memories: list[RecallResult]
+
+
+# ── Auth schemas ───────────────────────────────────────────────────────────────
+
+class ApiKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255,
+                      description="A label for this key, e.g. 'Production' or 'Demo - Acme Corp'")
+
+
+class ApiKeyResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    key_prefix: str
+    is_active: bool
+    created_at: datetime
+    last_used_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    """Returned only once at creation — includes the full key."""
+    full_key: str = Field(..., description="Store this securely — shown only once!")
