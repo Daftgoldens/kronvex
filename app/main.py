@@ -5,14 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
 from app.router import router
+from app.auth_router import router as auth_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: init DB tables + pgvector extension
     await init_db()
     yield
-    # Shutdown: nothing to clean up
 
 
 app = FastAPI(
@@ -20,45 +19,27 @@ app = FastAPI(
     description="""
 ## Give your AI agents long-term memory. 🧠
 
-The **Agent Memory Layer** is a plug-and-play API that solves the #1 problem
-in production AI agents: they forget everything between sessions.
-
-### Core endpoints
-
-| Endpoint | What it does |
-|---|---|
-| `POST /agents/{id}/remember` | Store a memory (text → embedding → pgvector) |
-| `POST /agents/{id}/recall` | Find relevant memories by semantic similarity |
-| `POST /agents/{id}/inject-context` | **Get a ready-to-inject context block for your LLM** |
-
 ### Quick start
 
-```python
-import httpx
+**1. Create an API key** (no auth required for this step)
+```
+POST /auth/keys  →  {"name": "my-project"}
+```
+Save the `full_key` returned — it's shown **only once**.
 
-BASE = "http://localhost:8000"
+**2. Use your key on every request**
+```
+X-API-Key: sk-mem-xxxxxxxx
+```
 
-# 1. Create an agent
-agent = httpx.post(f"{BASE}/agents", json={"name": "support-bot"}).json()
-agent_id = agent["id"]
-
-# 2. Store memories
-httpx.post(f"{BASE}/agents/{agent_id}/remember", json={
-    "content": "User Alice has a platinum subscription and prefers email contact",
-    "memory_type": "semantic",
-    "metadata": {"entity": "Alice", "importance": "high"}
-})
-
-# 3. Inject context before your LLM call
-ctx = httpx.post(f"{BASE}/agents/{agent_id}/inject-context", json={
-    "message": "I have a billing issue"
-}).json()
-
-system_prompt = ctx["context_block"] + "\\n\\nYou are a helpful support agent."
-# → Your LLM now knows about Alice before you even ask
+**3. Create an agent, store memories, recall context**
+```
+POST /api/v1/agents
+POST /api/v1/agents/{id}/remember
+POST /api/v1/agents/{id}/inject-context
 ```
     """,
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -69,9 +50,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Auth routes (no key required to create a key)
+app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+# All agent/memory routes require X-API-Key
 app.include_router(router, prefix="/api/v1")
 
 
-@app.get("/health")
+@app.get("/health", tags=["System"])
 async def health():
-    return {"status": "ok", "service": "agent-memory-layer"}
+    return {"status": "ok", "service": "agent-memory-layer", "version": "0.2.0"}

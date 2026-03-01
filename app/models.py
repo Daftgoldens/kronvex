@@ -1,13 +1,37 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, DateTime, JSON, Index, ForeignKey
+from sqlalchemy import String, Text, DateTime, JSON, Index, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from pgvector.sqlalchemy import Vector
 
 from app.database import Base
 from app.config import settings
+
+
+class ApiKey(Base):
+    """An API key scoped to a customer — all their agents live under it."""
+    __tablename__ = "api_keys"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    # The actual secret key shown to the user once: sk-mem-xxxxxxxx
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    key_prefix: Mapped[str] = mapped_column(String(16), nullable=False)  # for display: sk-mem-xxxx...
+
+    name: Mapped[str] = mapped_column(String(255), nullable=False)       # e.g. "Production", "Demo client Acme"
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    agents: Mapped[list["Agent"]] = relationship(
+        back_populates="api_key", cascade="all, delete-orphan"
+    )
 
 
 class Agent(Base):
@@ -17,6 +41,10 @@ class Agent(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
+    # Every agent belongs to an API key (= a customer)
+    api_key_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("api_keys.id", ondelete="CASCADE"), nullable=False
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
@@ -24,6 +52,7 @@ class Agent(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    api_key: Mapped["ApiKey"] = relationship(back_populates="agents")
     memories: Mapped[list["Memory"]] = relationship(
         back_populates="agent", cascade="all, delete-orphan"
     )
@@ -39,25 +68,13 @@ class Memory(Base):
     agent_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False
     )
-
-    # The original text content
     content: Mapped[str] = mapped_column(Text, nullable=False)
-
-    # Vector embedding (1536 dims for text-embedding-3-small)
     embedding: Mapped[list[float]] = mapped_column(
         Vector(settings.embedding_dimensions), nullable=False
     )
-
-    # Optional session context — group memories by conversation
     session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
-    # Memory type: episodic | semantic | procedural
     memory_type: Mapped[str] = mapped_column(String(50), default="episodic")
-
-    # Arbitrary metadata (entities extracted, importance score, source, etc.)
     metadata_: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
-
-    # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -69,8 +86,6 @@ class Memory(Base):
     agent: Mapped["Agent"] = relationship(back_populates="memories")
 
 
-# HNSW index for fast approximate nearest-neighbor search
-# Much faster than exact search at scale (millions of vectors)
 Index(
     "ix_memories_embedding_hnsw",
     Memory.embedding,
