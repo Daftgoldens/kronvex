@@ -15,28 +15,46 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Agent Memory Layer",
+    title="Memvex",
     description="""
-## Give your AI agents long-term memory. 🧠
+## Long-term memory for AI agents. 🧠
+
+**Memvex** gives your B2B AI agents persistent memory across sessions.
+Three endpoints. One API key. Your agent goes from amnesiac to contextually aware in minutes.
+
+---
 
 ### Quick start
 
-**1. Create an API key** (no auth required for this step)
+**1. Create an API key** — no auth required for this step
 ```
 POST /auth/keys  →  {"name": "my-project"}
 ```
-Save the `full_key` returned — it's shown **only once**.
+Save the `full_key` — it's shown **only once**.
 
-**2. Use your key on every request**
+**2. Add your key to every request**
 ```
 X-API-Key: sk-mem-xxxxxxxx
 ```
 
-**3. Create an agent, store memories, recall context**
+**3. Give your agent memory**
 ```
-POST /api/v1/agents
-POST /api/v1/agents/{id}/remember
-POST /api/v1/agents/{id}/inject-context
+POST /api/v1/agents                          → create an agent
+POST /api/v1/agents/{id}/remember            → store a memory
+POST /api/v1/agents/{id}/inject-context      → get context block ✨
+```
+
+---
+
+### The killer feature: `/inject-context`
+
+Pass the user's message → get a ready-to-inject context block to prepend to your LLM system prompt.
+Your agent instantly knows who it's talking to, what happened before, and what matters.
+
+```
+[MEMVEX CONTEXT]
+- Alice is a premium customer since 2023 (similarity: 0.92)
+- Last session: billing issue unresolved (similarity: 0.88)
 ```
     """,
     version="0.2.0",
@@ -50,13 +68,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth routes (no key required to create a key)
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-
-# All agent/memory routes require X-API-Key
 app.include_router(router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["System"])
 async def health():
-    return {"status": "ok", "service": "agent-memory-layer", "version": "0.2.0"}
+    return {"status": "ok", "service": "memvex", "version": "0.2.0"}

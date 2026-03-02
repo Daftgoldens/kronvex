@@ -133,7 +133,7 @@ async def inject_context(
     if not recall_result.results:
         return InjectContextResponse(context_block="", memories_used=0, memories=[])
 
-    lines = ["[AGENT MEMORY CONTEXT]"]
+    lines = ["[MEMVEX CONTEXT]"]
     for r in recall_result.results:
         lines.append(f"- {r.memory.content} (similarity: {r.similarity})")
 

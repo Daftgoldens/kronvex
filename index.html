@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memvex — Long-term memory for AI agents</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#03030a;--s1:#07070f;--s2:#0d0d1a;
+  --border:#151525;--border2:#1e1e35;
+  --text:#e8e8f0;--muted:#5a5a80;
+  --lime:#d4f54e;--lime2:#a8c73e;
+  --cyan:#38bdf8;--orange:#fb923c;
+  --green:#4ade80;--red:#f87171;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,.004) 3px,rgba(255,255,255,.004) 4px);pointer-events:none;z-index:1}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 40px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(3,3,10,.85);backdrop-filter:blur(20px)}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo-text{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--lime);letter-spacing:2px;font-weight:500}
+.nav-logo-tag{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;background:var(--border);padding:2px 8px}
+.nav-right{display:flex;align-items:center;gap:20px}
+.lang-toggle{display:flex;border:1px solid var(--border2);overflow:hidden}
+.lang-btn{font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 14px;background:transparent;color:var(--muted);border:none;cursor:pointer;letter-spacing:1px;transition:all .2s}
+.lang-btn.active{background:var(--s2);color:var(--lime)}
+.nav-cta{background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;padding:10px 20px;border:none;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.nav-cta:hover{background:var(--lime2)}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 40px 80px;position:relative;z-index:2;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);pointer-events:none}
+.orb1{width:700px;height:700px;background:rgba(212,245,78,.04);top:-200px;right:-150px}
+.orb2{width:500px;height:500px;background:rgba(56,189,248,.03);bottom:0;left:-150px}
+
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(212,245,78,.07);border:1px solid rgba(212,245,78,.18);padding:6px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--lime);letter-spacing:2px;margin-bottom:40px;width:fit-content}
+.hero-badge::before{content:'';width:6px;height:6px;background:var(--lime);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.hero h1{font-size:clamp(52px,8vw,92px);font-weight:800;line-height:1.0;letter-spacing:-2px;margin-bottom:32px;max-width:780px}
+.hero h1 .accent{color:var(--lime)}
+.hero h1 .dim{color:var(--muted)}
+.hero-sub{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted);line-height:1.9;max-width:480px;margin-bottom:52px}
+.hero-sub strong{color:var(--text)}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:72px}
+.btn-primary{background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;padding:14px 32px;border:none;letter-spacing:2px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-primary:hover{background:var(--lime2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(212,245,78,.25)}
+.btn-ghost{background:transparent;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:14px 32px;border:1px solid var(--border2);letter-spacing:2px;cursor:pointer;transition:all .2s;text-decoration:none}
+.btn-ghost:hover{border-color:var(--lime);color:var(--lime)}
+
+.hero-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
+.metric{background:var(--s1);padding:24px;text-align:center}
+.metric-val{font-size:30px;font-weight:800;color:var(--lime);line-height:1;margin-bottom:6px}
+.metric-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px}
+
+/* SECTIONS */
+section{padding:96px 40px;position:relative;z-index:2}
+.section-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--lime);letter-spacing:4px;margin-bottom:16px}
+.section-title{font-size:clamp(32px,4.5vw,52px);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:20px}
+.section-sub{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);line-height:1.9;max-width:460px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:0 40px}
+
+/* HOW IT WORKS */
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--border);margin-top:56px}
+.how-step{background:var(--s1);padding:36px;position:relative;overflow:hidden}
+.how-step::before{content:attr(data-num);position:absolute;top:-30px;right:16px;font-size:110px;font-weight:800;color:rgba(255,255,255,.018);font-family:'Syne',sans-serif}
+.how-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--lime);letter-spacing:3px;margin-bottom:14px}
+.how-step h3{font-size:20px;font-weight:700;margin-bottom:10px}
+.how-step p{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.9}
+.code-block{margin-top:20px;background:var(--s2);border:1px solid var(--border2);padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.9;overflow-x:auto}
+.kw{color:#c084fc}.str{color:var(--lime)}.fn{color:var(--cyan)}.cm{color:var(--muted)}.vr{color:var(--orange)}.nm{color:#fb923c}
+
+/* ENDPOINTS */
+.endpoints{margin-top:56px;display:flex;flex-direction:column;gap:2px}
+.ep{background:var(--s1);border:1px solid var(--border);padding:24px 28px;display:flex;align-items:center;gap:20px;transition:border-color .2s;cursor:default}
+.ep:hover{border-color:rgba(212,245,78,.3)}
+.ep-method{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;padding:4px 10px;flex-shrink:0;letter-spacing:1px;width:52px;text-align:center}
+.mpost{background:rgba(74,222,128,.08);color:var(--green);border:1px solid rgba(74,222,128,.2)}
+.mget{background:rgba(56,189,248,.08);color:var(--cyan);border:1px solid rgba(56,189,248,.2)}
+.mdel{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.ep-path{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;margin-bottom:4px}
+.ep-desc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.ep-star{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--lime);border:1px solid rgba(212,245,78,.25);padding:3px 10px;flex-shrink:0;letter-spacing:1px}
+
+/* DEMO */
+.demo-wrap{margin-top:56px;background:var(--s1);border:1px solid var(--border2)}
+.demo-hd{background:var(--s2);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.demo-tabs{display:flex}
+.demo-tab{font-family:'JetBrains Mono',monospace;font-size:10px;padding:8px 18px;background:transparent;border:none;color:var(--muted);cursor:pointer;letter-spacing:1px;border-bottom:2px solid transparent;transition:all .2s}
+.demo-tab.active{color:var(--lime);border-bottom-color:var(--lime)}
+.demo-status{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;letter-spacing:1px}
+.s-ok{background:rgba(74,222,128,.08);color:var(--green);border:1px solid rgba(74,222,128,.2)}
+.s-load{background:rgba(212,245,78,.08);color:var(--lime);border:1px solid rgba(212,245,78,.2)}
+.s-err{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+
+.demo-body{display:grid;grid-template-columns:1fr 1fr;min-height:420px}
+.demo-in{padding:24px;border-right:1px solid var(--border)}
+.demo-out{padding:24px;background:rgba(0,0,0,.15)}
+.d-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:10px;margin-top:16px}
+.d-label:first-child{margin-top:0}
+.d-field{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:10px 14px;width:100%;outline:none;resize:vertical;transition:border-color .2s}
+.d-field:focus{border-color:var(--lime)}
+.d-field::placeholder{color:var(--muted)}
+.d-select{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:10px 14px;width:100%;outline:none;cursor:pointer}
+.d-btn{background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;padding:12px;border:none;letter-spacing:2px;cursor:pointer;width:100%;transition:all .2s;margin-top:16px}
+.d-btn:hover{background:var(--lime2)}
+.d-result{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.9;white-space:pre-wrap;color:var(--muted);min-height:220px}
+.d-result .hi{color:var(--lime);font-weight:600}
+.d-result .rk{color:var(--cyan)}
+.d-result .rv{color:var(--green)}
+.d-result .rn{color:var(--orange)}
+.ctx-block{background:rgba(212,245,78,.05);border-left:2px solid var(--lime);padding:12px;margin:8px 0;color:var(--text);white-space:pre-wrap}
+
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-top:56px}
+.plan{background:var(--s1);padding:28px 24px;position:relative}
+.plan.hot{background:var(--s2);border-top:2px solid var(--lime)}
+.plan-hot-badge{position:absolute;top:-1px;right:16px;background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;padding:3px 10px;letter-spacing:1px}
+.plan-name{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:3px;margin-bottom:10px}
+.plan-price{font-size:36px;font-weight:800;line-height:1;margin-bottom:4px}
+.plan-price span{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);font-weight:400}
+.plan-quota{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:20px;margin-top:6px}
+.plan-feats{list-style:none;display:flex;flex-direction:column;gap:9px}
+.plan-feats li{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.plan-feats li::before{content:'→';color:var(--lime);font-size:9px;flex-shrink:0}
+
+/* PROCESS */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);margin-top:56px;position:relative}
+.steps::before{content:'';position:absolute;top:27px;left:10%;right:10%;height:1px;background:var(--border2)}
+.step{text-align:center;padding:0 12px;position:relative;z-index:1}
+.step-num{width:54px;height:54px;border:1px solid var(--border2);background:var(--s1);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--lime)}
+.step-num.go{background:var(--lime);color:#03030a;border-color:var(--lime)}
+.step h4{font-size:13px;font-weight:700;margin-bottom:8px}
+.step p{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);line-height:1.7}
+
+/* FOOTER */
+footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:40px;position:relative;z-index:2}
+.ft-brand .logo{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--lime);letter-spacing:2px;margin-bottom:12px;font-weight:500}
+.ft-brand p{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.9}
+.ft-col h4{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;margin-bottom:14px}
+.ft-col a{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-decoration:none;margin-bottom:9px;transition:color .2s}
+.ft-col a:hover{color:var(--lime)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;padding:12px 22px;z-index:300;transform:translateY(60px);opacity:0;transition:all .3s;letter-spacing:1px}
+.toast.show{transform:translateY(0);opacity:1}
+
+@media(max-width:800px){
+  nav{padding:14px 20px}
+  .hero{padding:90px 20px 56px}
+  .hero h1{font-size:44px}
+  .hero-metrics,.how-grid,.demo-body,.pricing-grid,.steps{grid-template-columns:1fr}
+  section{padding:56px 20px}
+  .divider{margin:0 20px}
+  footer{grid-template-columns:1fr}
+  .steps::before{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-text">memvex</div>
+    <div class="nav-logo-tag" data-i18n="nav-tag">MEMORY API</div>
+  </div>
+  <div class="nav-right">
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('en',this)">EN</button>
+      <button class="lang-btn" onclick="setLang('fr',this)">FR</button>
+    </div>
+    <button class="nav-cta" onclick="scrollTo('demo')" data-i18n="nav-cta">GET API KEY →</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <div class="hero-badge" data-i18n="badge">🧠 Live in production · API v0.2</div>
+
+  <h1 data-i18n="h1">
+    Your AI agents<br>
+    <span class="accent">never forget</span><br>
+    <span class="dim">again.</span>
+  </h1>
+
+  <p class="hero-sub" data-i18n="sub">
+    Plug-and-play <strong>memory infrastructure</strong> for B2B AI agents.<br>
+    Three endpoints. One API key. Your agent goes from<br>
+    amnesiac to contextually aware in minutes.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#demo" class="btn-primary" data-i18n="cta1">TRY THE DEMO →</a>
+    <a href="#api" class="btn-ghost" data-i18n="cta2">VIEW API DOCS</a>
+  </div>
+
+  <div class="hero-metrics">
+    <div class="metric"><div class="metric-val">3</div><div class="metric-label" data-i18n="m1">Core endpoints</div></div>
+    <div class="metric"><div class="metric-val">&lt;50ms</div><div class="metric-label" data-i18n="m2">Avg recall time</div></div>
+    <div class="metric"><div class="metric-val">∞</div><div class="metric-label" data-i18n="m3">Memories per agent</div></div>
+    <div class="metric"><div class="metric-val">EU</div><div class="metric-label" data-i18n="m4">Data residency</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-tag" data-i18n="how-tag">// how it works</div>
+  <h2 class="section-title" data-i18n="how-title">Three endpoints.<br>Infinite memory.</h2>
+  <p class="section-sub" data-i18n="how-sub">No new architecture. Drop three API calls into your existing agent and it remembers everything.</p>
+
+  <div class="how-grid">
+    <div class="how-step" data-num="01">
+      <div class="how-num" data-i18n="s1-num">01 / STORE</div>
+      <h3 data-i18n="s1-title">Remember anything</h3>
+      <p data-i18n="s1-desc">Text → embedding → pgvector. Your agent stores facts, events, preferences. We handle the vectorization.</p>
+      <div class="code-block"><span class="kw">await</span> fetch(<span class="str">"/remember"</span>, {<br>  body: { <span class="vr">content</span>: <span class="str">"Alice is premium"</span> }<br>})</div>
+    </div>
+    <div class="how-step" data-num="02">
+      <div class="how-num" data-i18n="s2-num">02 / SEARCH</div>
+      <h3 data-i18n="s2-title">Recall by meaning</h3>
+      <p data-i18n="s2-desc">Cosine similarity on HNSW index. Retrieves the most relevant memories for any query in milliseconds.</p>
+      <div class="code-block"><span class="kw">await</span> fetch(<span class="str">"/recall"</span>, {<br>  body: { <span class="vr">query</span>: <span class="str">"billing issue"</span>, <span class="vr">topK</span>: <span class="nm">5</span> }<br>})</div>
+    </div>
+    <div class="how-step" data-num="03">
+      <div class="how-num" data-i18n="s3-num">03 / INJECT ✨</div>
+      <h3 data-i18n="s3-title">Context in one call</h3>
+      <p data-i18n="s3-desc">The killer feature. Pass the user message, get a context block to prepend to your system prompt. That's it.</p>
+      <div class="code-block"><span class="kw">const</span> <span class="vr">ctx</span> = <span class="kw">await</span> fetch(<span class="str">"/inject-context"</span>, {<br>  body: { <span class="vr">message</span>: userMsg }<br>})<br><span class="cm">// paste ctx.block before system prompt</span></div>
+    </div>
+    <div class="how-step" data-num="04">
+      <div class="how-num" data-i18n="s4-num">04 / RESULT</div>
+      <h3 data-i18n="s4-title">Your agent knows everything</h3>
+      <p data-i18n="s4-desc">Without a single line of prompt engineering. Your LLM receives full context automatically, every time.</p>
+      <div class="code-block"><span class="cm">// System prompt becomes:</span><br><span class="str">[MEMVEX CONTEXT]</span><br><span class="str">- Alice: premium, prefers email</span><br><span class="str">- Last session: billing unresolved</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- API -->
+<section id="api">
+  <div class="section-tag" data-i18n="api-tag">// api reference</div>
+  <h2 class="section-title" data-i18n="api-title">Clean REST API.<br>No SDK required.</h2>
+  <p class="section-sub" data-i18n="api-sub">Auth via <code style="color:var(--lime);font-family:'JetBrains Mono',monospace">X-API-Key</code> header. Every response typed. EU data residency.</p>
+
+  <div class="endpoints">
+    <div class="ep"><div class="ep-method mpost">POST</div><div><div class="ep-path">/auth/keys</div><div class="ep-desc" data-i18n="ep1">Create an API key — no auth needed. Returns full_key once, store it securely.</div></div></div>
+    <div class="ep"><div class="ep-method mpost">POST</div><div><div class="ep-path">/api/v1/agents</div><div class="ep-desc" data-i18n="ep2">Create an isolated agent memory space.</div></div></div>
+    <div class="ep"><div class="ep-method mpost">POST</div><div><div class="ep-path">/api/v1/agents/{id}/remember</div><div class="ep-desc" data-i18n="ep3">Store a memory. Supports episodic, semantic, procedural types.</div></div></div>
+    <div class="ep"><div class="ep-method mpost">POST</div><div><div class="ep-path">/api/v1/agents/{id}/recall</div><div class="ep-desc" data-i18n="ep4">Semantic similarity search. Returns top-K memories ranked by score.</div></div></div>
+    <div class="ep"><div class="ep-method mpost">POST</div><div><div class="ep-path">/api/v1/agents/{id}/inject-context</div><div class="ep-desc" data-i18n="ep5">Returns a formatted context block ready to prepend to your system prompt.</div></div><div class="ep-star" data-i18n="ep5-star">★ KILLER FEATURE</div></div>
+    <div class="ep"><div class="ep-method mget">GET</div><div><div class="ep-path">/api/v1/agents</div><div class="ep-desc" data-i18n="ep6">List all agents scoped to your API key.</div></div></div>
+    <div class="ep"><div class="ep-method mdel">DEL</div><div><div class="ep-path">/api/v1/agents/{id}/memories</div><div class="ep-desc" data-i18n="ep7">Wipe all memories for an agent. GDPR compliant.</div></div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- LIVE DEMO -->
+<section id="demo">
+  <div class="section-tag" data-i18n="demo-tag">// live demo</div>
+  <h2 class="section-title" data-i18n="demo-title">Try it now.<br>No signup required.</h2>
+  <p class="section-sub" data-i18n="demo-sub">This is the real API running in production. Enter your key and agent ID to start.</p>
+
+  <div class="demo-wrap">
+    <div class="demo-hd">
+      <div class="demo-tabs">
+        <button class="demo-tab active" onclick="switchTab('remember',this)" data-i18n="tab1">01 REMEMBER</button>
+        <button class="demo-tab" onclick="switchTab('recall',this)" data-i18n="tab2">02 RECALL</button>
+        <button class="demo-tab" onclick="switchTab('inject',this)" data-i18n="tab3">03 INJECT CONTEXT ★</button>
+      </div>
+      <div id="demoStatus" class="demo-status s-ok">● LIVE</div>
+    </div>
+
+    <!-- REMEMBER -->
+    <div id="tab-remember" class="demo-body">
+      <div class="demo-in">
+        <div class="d-label" data-i18n="f-apikey">API KEY</div>
+        <input class="d-field" id="k1" type="password" placeholder="sk-mem-..." oninput="syncFields()">
+        <div class="d-label" data-i18n="f-agentid">AGENT ID</div>
+        <input class="d-field" id="a1" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" oninput="syncFields()">
+        <div class="d-label" data-i18n="f-content">MEMORY CONTENT</div>
+        <textarea class="d-field" id="memContent" rows="3" data-i18n-placeholder="ph-content"></textarea>
+        <div class="d-label" data-i18n="f-type">MEMORY TYPE</div>
+        <select class="d-select" id="memType">
+          <option value="semantic" data-i18n="t-semantic">semantic — facts about users</option>
+          <option value="episodic" data-i18n="t-episodic">episodic — past events & sessions</option>
+          <option value="procedural" data-i18n="t-procedural">procedural — how-to knowledge</option>
+        </select>
+        <button class="d-btn" onclick="doRemember()" data-i18n="btn-remember">STORE MEMORY →</button>
+      </div>
+      <div class="demo-out">
+        <div class="d-label" data-i18n="f-response">RESPONSE</div>
+        <div class="d-result" id="res-remember"><span style="color:var(--border2)" data-i18n="placeholder-result">// Response will appear here...</span></div>
+      </div>
+    </div>
+
+    <!-- RECALL -->
+    <div id="tab-recall" class="demo-body" style="display:none">
+      <div class="demo-in">
+        <div class="d-label" data-i18n="f-apikey">API KEY</div>
+        <input class="d-field" id="k2" type="password" placeholder="sk-mem-...">
+        <div class="d-label" data-i18n="f-agentid">AGENT ID</div>
+        <input class="d-field" id="a2" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        <div class="d-label" data-i18n="f-query">SEARCH QUERY</div>
+        <input class="d-field" id="recallQ" data-i18n-placeholder="ph-query">
+        <div class="d-label">TOP K</div>
+        <input class="d-field" id="recallK" value="3" type="number" min="1" max="20">
+        <div class="d-label" data-i18n="f-threshold">THRESHOLD (0–1)</div>
+        <input class="d-field" id="recallT" value="0.5" type="number" min="0" max="1" step="0.1">
+        <button class="d-btn" onclick="doRecall()" data-i18n="btn-recall">SEARCH MEMORIES →</button>
+      </div>
+      <div class="demo-out">
+        <div class="d-label" data-i18n="f-response">RESPONSE</div>
+        <div class="d-result" id="res-recall"><span style="color:var(--border2)" data-i18n="placeholder-result">// Response will appear here...</span></div>
+      </div>
+    </div>
+
+    <!-- INJECT -->
+    <div id="tab-inject" class="demo-body" style="display:none">
+      <div class="demo-in">
+        <div class="d-label" data-i18n="f-apikey">API KEY</div>
+        <input class="d-field" id="k3" type="password" placeholder="sk-mem-...">
+        <div class="d-label" data-i18n="f-agentid">AGENT ID</div>
+        <input class="d-field" id="a3" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        <div class="d-label" data-i18n="f-message">USER MESSAGE</div>
+        <textarea class="d-field" id="injectMsg" rows="3" data-i18n-placeholder="ph-message"></textarea>
+        <div class="d-label" data-i18n="f-threshold">THRESHOLD (0–1)</div>
+        <input class="d-field" id="injectT" value="0.5" type="number" min="0" max="1" step="0.1">
+        <button class="d-btn" onclick="doInject()" data-i18n="btn-inject">GET CONTEXT BLOCK →</button>
+      </div>
+      <div class="demo-out">
+        <div class="d-label" data-i18n="f-context">CONTEXT BLOCK — PASTE BEFORE SYSTEM PROMPT</div>
+        <div class="d-result" id="res-inject"><span style="color:var(--border2)" data-i18n="placeholder-inject">// Your ready-to-inject context will appear here...</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROCESS -->
+<section id="start">
+  <div class="section-tag" data-i18n="start-tag">// getting started</div>
+  <h2 class="section-title" data-i18n="start-title">Live in 5 minutes.</h2>
+  <div class="steps">
+    <div class="step"><div class="step-num go">01</div><h4 data-i18n="p1-title">Get API Key</h4><p data-i18n="p1-desc">POST /auth/keys<br>Copy full_key</p></div>
+    <div class="step"><div class="step-num">02</div><h4 data-i18n="p2-title">Create Agent</h4><p data-i18n="p2-desc">POST /agents<br>One per use case</p></div>
+    <div class="step"><div class="step-num">03</div><h4 data-i18n="p3-title">Store Memories</h4><p data-i18n="p3-desc">POST /remember<br>After each interaction</p></div>
+    <div class="step"><div class="step-num">04</div><h4 data-i18n="p4-title">Inject Context</h4><p data-i18n="p4-desc">POST /inject-context<br>Before each LLM call</p></div>
+    <div class="step"><div class="step-num">05</div><h4 data-i18n="p5-title">Ship 🚀</h4><p data-i18n="p5-desc">Your agent now<br>remembers everything</p></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-tag" data-i18n="price-tag">// pricing</div>
+  <h2 class="section-title" data-i18n="price-title">Simple. Usage-based.<br>Scales with you.</h2>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div class="plan-name">STARTER</div>
+      <div class="plan-price">€99<span>/mo</span></div>
+      <div class="plan-quota" data-i18n="q1">1 agent · 10k memories</div>
+      <ul class="plan-feats">
+        <li data-i18n="f1-1">1 agent</li><li data-i18n="f1-2">10,000 memories</li><li data-i18n="f1-3">API key access</li><li data-i18n="f1-4">Community support</li>
+      </ul>
+    </div>
+    <div class="plan hot">
+      <div class="plan-hot-badge" data-i18n="popular">POPULAR</div>
+      <div class="plan-name">GROWTH</div>
+      <div class="plan-price" style="color:var(--lime)">€499<span>/mo</span></div>
+      <div class="plan-quota" data-i18n="q2">5 agents · 100k memories</div>
+      <ul class="plan-feats">
+        <li data-i18n="f2-1">5 agents</li><li data-i18n="f2-2">100,000 memories</li><li data-i18n="f2-3">Session filtering</li><li data-i18n="f2-4">Priority support</li><li data-i18n="f2-5">99.9% SLA</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="plan-name">SCALE</div>
+      <div class="plan-price">€1499<span>/mo</span></div>
+      <div class="plan-quota" data-i18n="q3">20 agents · unlimited</div>
+      <ul class="plan-feats">
+        <li data-i18n="f3-1">20 agents</li><li data-i18n="f3-2">Unlimited memories</li><li data-i18n="f3-3">Custom embeddings</li><li data-i18n="f3-4">Dedicated support</li><li data-i18n="f3-5">GDPR DPA</li>
+      </ul>
+    </div>
+    <div class="plan" style="background:var(--s2)">
+      <div class="plan-name">ENTERPRISE</div>
+      <div class="plan-price" style="font-size:26px;color:var(--lime)" data-i18n="custom">Custom</div>
+      <div class="plan-quota" data-i18n="q4">Unlimited everything</div>
+      <ul class="plan-feats">
+        <li data-i18n="f4-1">Unlimited agents</li><li data-i18n="f4-2">On-premise option</li><li data-i18n="f4-3">Custom SLA</li><li data-i18n="f4-4">SOC2 in progress</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-brand">
+    <div class="logo">memvex</div>
+    <p data-i18n="ft-desc">Long-term memory infrastructure<br>for B2B AI agents.<br><br>Built in Paris 🇫🇷 · EU data residency<br>GDPR compliant · API v0.2</p>
+  </div>
+  <div class="ft-col">
+    <h4 data-i18n="ft-product">PRODUCT</h4>
+    <a href="#how" data-i18n="ft-how">How it works</a>
+    <a href="#api" data-i18n="ft-api">API Reference</a>
+    <a href="#demo" data-i18n="ft-demo">Live Demo</a>
+    <a href="#pricing" data-i18n="ft-pricing">Pricing</a>
+  </div>
+  <div class="ft-col">
+    <h4 data-i18n="ft-dev">DEVELOPERS</h4>
+    <a href="https://agent-memory-layer-production.up.railway.app/docs" target="_blank">Swagger UI</a>
+    <a href="#" data-i18n="ft-docs">Documentation</a>
+    <a href="#" data-i18n="ft-status">Status page</a>
+    <a href="#" data-i18n="ft-contact">Contact</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = "https://agent-memory-layer-production.up.railway.app";
+
+// ── i18n ─────────────────────────────────────────────────────────────────────
+const translations = {
+  en: {
+    "nav-tag":"MEMORY API","nav-cta":"GET API KEY →",
+    "badge":"🧠 Live in production · API v0.2",
+    "h1":"Your AI agents<br><span class='accent'>never forget</span><br><span class='dim'>again.</span>",
+    "sub":"Plug-and-play <strong>memory infrastructure</strong> for B2B AI agents.<br>Three endpoints. One API key. Your agent goes from<br>amnesiac to contextually aware in minutes.",
+    "cta1":"TRY THE DEMO →","cta2":"VIEW API DOCS",
+    "m1":"Core endpoints","m2":"Avg recall time","m3":"Memories per agent","m4":"Data residency",
+    "how-tag":"// how it works","how-title":"Three endpoints.<br>Infinite memory.",
+    "how-sub":"No new architecture. Drop three API calls into your existing agent and it remembers everything.",
+    "s1-num":"01 / STORE","s1-title":"Remember anything","s1-desc":"Text → embedding → pgvector. Your agent stores facts, events, preferences. We handle the vectorization.",
+    "s2-num":"02 / SEARCH","s2-title":"Recall by meaning","s2-desc":"Cosine similarity on HNSW index. Retrieves the most relevant memories for any query in milliseconds.",
+    "s3-num":"03 / INJECT ✨","s3-title":"Context in one call","s3-desc":"The killer feature. Pass the user message, get a context block to prepend to your system prompt. That's it.",
+    "s4-num":"04 / RESULT","s4-title":"Your agent knows everything","s4-desc":"Without a single line of prompt engineering. Your LLM receives full context automatically.",
+    "api-tag":"// api reference","api-title":"Clean REST API.<br>No SDK required.",
+    "api-sub":"Auth via X-API-Key header. Every response typed. EU data residency.",
+    "ep1":"Create an API key — no auth needed. Returns full_key once.","ep2":"Create an isolated agent memory space.",
+    "ep3":"Store a memory. Supports episodic, semantic, procedural types.",
+    "ep4":"Semantic similarity search. Returns top-K memories ranked by score.",
+    "ep5":"Returns a formatted context block ready to prepend to your system prompt.",
+    "ep5-star":"★ KILLER FEATURE","ep6":"List all agents scoped to your API key.","ep7":"Wipe all memories. GDPR compliant.",
+    "demo-tag":"// live demo","demo-title":"Try it now.<br>No signup required.",
+    "demo-sub":"This is the real API running in production. Enter your key and agent ID to start.",
+    "tab1":"01 REMEMBER","tab2":"02 RECALL","tab3":"03 INJECT CONTEXT ★",
+    "f-apikey":"API KEY","f-agentid":"AGENT ID","f-content":"MEMORY CONTENT","f-type":"MEMORY TYPE",
+    "f-query":"SEARCH QUERY","f-threshold":"THRESHOLD (0–1)","f-message":"USER MESSAGE",
+    "f-response":"RESPONSE","f-context":"CONTEXT BLOCK — PASTE BEFORE SYSTEM PROMPT",
+    "ph-content":"Alice is a premium customer since 2023, prefers email contact",
+    "ph-query":"billing issue","ph-message":"I have a problem with my billing",
+    "t-semantic":"semantic — facts about users","t-episodic":"episodic — past events","t-procedural":"procedural — how-to",
+    "btn-remember":"STORE MEMORY →","btn-recall":"SEARCH MEMORIES →","btn-inject":"GET CONTEXT BLOCK →",
+    "placeholder-result":"// Response will appear here...","placeholder-inject":"// Your context block will appear here...",
+    "start-tag":"// getting started","start-title":"Live in 5 minutes.",
+    "p1-title":"Get API Key","p1-desc":"POST /auth/keys<br>Copy full_key",
+    "p2-title":"Create Agent","p2-desc":"POST /agents<br>One per use case",
+    "p3-title":"Store Memories","p3-desc":"POST /remember<br>After each interaction",
+    "p4-title":"Inject Context","p4-desc":"POST /inject-context<br>Before each LLM call",
+    "p5-title":"Ship 🚀","p5-desc":"Your agent now<br>remembers everything",
+    "price-tag":"// pricing","price-title":"Simple. Usage-based.<br>Scales with you.",
+    "q1":"1 agent · 10k memories","q2":"5 agents · 100k memories","q3":"20 agents · unlimited","q4":"Unlimited everything",
+    "popular":"POPULAR","custom":"Custom",
+    "f1-1":"1 agent","f1-2":"10,000 memories","f1-3":"API key access","f1-4":"Community support",
+    "f2-1":"5 agents","f2-2":"100,000 memories","f2-3":"Session filtering","f2-4":"Priority support","f2-5":"99.9% SLA",
+    "f3-1":"20 agents","f3-2":"Unlimited memories","f3-3":"Custom embeddings","f3-4":"Dedicated support","f3-5":"GDPR DPA",
+    "f4-1":"Unlimited agents","f4-2":"On-premise option","f4-3":"Custom SLA","f4-4":"SOC2 in progress",
+    "ft-desc":"Long-term memory infrastructure<br>for B2B AI agents.<br><br>Built in Paris 🇫🇷 · EU data residency<br>GDPR compliant · API v0.2",
+    "ft-product":"PRODUCT","ft-how":"How it works","ft-api":"API Reference","ft-demo":"Live Demo","ft-pricing":"Pricing",
+    "ft-dev":"DEVELOPERS","ft-docs":"Documentation","ft-status":"Status page","ft-contact":"Contact",
+  },
+  fr: {
+    "nav-tag":"API MÉMOIRE","nav-cta":"OBTENIR UNE CLÉ →",
+    "badge":"🧠 En production · API v0.2",
+    "h1":"Vos agents IA<br><span class='accent'>n' oublient plus</span><br><span class='dim'>jamais.</span>",
+    "sub":"Infrastructure <strong>mémoire plug-and-play</strong> pour agents IA B2B.<br>Trois endpoints. Une clé API. Votre agent passe<br>d'amnésique à contextuel en quelques minutes.",
+    "cta1":"TESTER LA DÉMO →","cta2":"VOIR LA DOC API",
+    "m1":"Endpoints principaux","m2":"Temps de rappel moyen","m3":"Mémoires par agent","m4":"Données hébergées EU",
+    "how-tag":"// comment ça marche","how-title":"Trois endpoints.<br>Mémoire infinie.",
+    "how-sub":"Aucune nouvelle architecture. Ajoutez trois appels API à votre agent existant et il se souvient de tout.",
+    "s1-num":"01 / STOCKER","s1-title":"Tout retenir","s1-desc":"Texte → embedding → pgvector. Votre agent stocke des faits, événements, préférences. On gère la vectorisation.",
+    "s2-num":"02 / CHERCHER","s2-title":"Rappel par sens","s2-desc":"Similarité cosinus sur index HNSW. Retrouve les mémoires les plus pertinentes en quelques millisecondes.",
+    "s3-num":"03 / INJECTER ✨","s3-title":"Contexte en un appel","s3-desc":"La fonctionnalité clé. Passez le message de l'utilisateur, obtenez un bloc de contexte à coller dans votre system prompt.",
+    "s4-num":"04 / RÉSULTAT","s4-title":"Votre agent sait tout","s4-desc":"Sans aucune ligne de prompt engineering. Votre LLM reçoit le contexte complet automatiquement.",
+    "api-tag":"// référence api","api-title":"API REST propre.<br>Aucun SDK requis.",
+    "api-sub":"Auth via header X-API-Key. Toutes les réponses typées. Données hébergées en Europe.",
+    "ep1":"Créer une clé API — sans auth. Retourne full_key une seule fois.","ep2":"Créer un espace mémoire isolé pour un agent.",
+    "ep3":"Stocker une mémoire. Types : episodic, semantic, procedural.",
+    "ep4":"Recherche sémantique. Retourne les top-K mémoires classées par score.",
+    "ep5":"Retourne un bloc de contexte prêt à coller dans votre system prompt.",
+    "ep5-star":"★ FONCTIONNALITÉ CLÉ","ep6":"Lister tous les agents de votre clé API.","ep7":"Supprimer toutes les mémoires. Conforme RGPD.",
+    "demo-tag":"// démo live","demo-title":"Testez maintenant.<br>Sans inscription.",
+    "demo-sub":"C'est la vraie API en production. Entrez votre clé et l'ID de votre agent pour commencer.",
+    "tab1":"01 STOCKER","tab2":"02 RECHERCHER","tab3":"03 INJECTER CONTEXTE ★",
+    "f-apikey":"CLÉ API","f-agentid":"ID AGENT","f-content":"CONTENU DE LA MÉMOIRE","f-type":"TYPE DE MÉMOIRE",
+    "f-query":"REQUÊTE DE RECHERCHE","f-threshold":"SEUIL (0–1)","f-message":"MESSAGE UTILISATEUR",
+    "f-response":"RÉPONSE","f-context":"BLOC DE CONTEXTE — COLLEZ AVANT VOTRE SYSTEM PROMPT",
+    "ph-content":"Alice est cliente premium depuis 2023, préfère le contact par email",
+    "ph-query":"problème de facturation","ph-message":"J'ai un problème avec ma facture",
+    "t-semantic":"semantic — faits sur les utilisateurs","t-episodic":"episodic — événements passés","t-procedural":"procedural — savoir-faire",
+    "btn-remember":"STOCKER LA MÉMOIRE →","btn-recall":"RECHERCHER →","btn-inject":"OBTENIR LE BLOC DE CONTEXTE →",
+    "placeholder-result":"// La réponse apparaîtra ici...","placeholder-inject":"// Votre bloc de contexte apparaîtra ici...",
+    "start-tag":"// démarrer","start-title":"En production en 5 minutes.",
+    "p1-title":"Clé API","p1-desc":"POST /auth/keys<br>Copiez full_key",
+    "p2-title":"Créer l'agent","p2-desc":"POST /agents<br>Un par cas d'usage",
+    "p3-title":"Stocker","p3-desc":"POST /remember<br>Après chaque interaction",
+    "p4-title":"Injecter","p4-desc":"POST /inject-context<br>Avant chaque appel LLM",
+    "p5-title":"Déployer 🚀","p5-desc":"Votre agent se souvient<br>de tout maintenant",
+    "price-tag":"// tarifs","price-title":"Simple. Usage-based.<br>Scalable.",
+    "q1":"1 agent · 10k mémoires","q2":"5 agents · 100k mémoires","q3":"20 agents · illimité","q4":"Tout illimité",
+    "popular":"POPULAIRE","custom":"Sur devis",
+    "f1-1":"1 agent","f1-2":"10 000 mémoires","f1-3":"Accès clé API","f1-4":"Support communauté",
+    "f2-1":"5 agents","f2-2":"100 000 mémoires","f2-3":"Filtrage par session","f2-4":"Support prioritaire","f2-5":"SLA 99,9%",
+    "f3-1":"20 agents","f3-2":"Mémoires illimitées","f3-3":"Embeddings personnalisés","f3-4":"Support dédié","f3-5":"DPA RGPD inclus",
+    "f4-1":"Agents illimités","f4-2":"Option on-premise","f4-3":"SLA personnalisé","f4-4":"SOC2 en cours",
+    "ft-desc":"Infrastructure mémoire long-terme<br>pour agents IA B2B.<br><br>Construit à Paris 🇫🇷 · Données EU<br>Conforme RGPD · API v0.2",
+    "ft-product":"PRODUIT","ft-how":"Comment ça marche","ft-api":"Référence API","ft-demo":"Démo Live","ft-pricing":"Tarifs",
+    "ft-dev":"DÉVELOPPEURS","ft-docs":"Documentation","ft-status":"Status","ft-contact":"Contact",
+  }
+};
+
+let lang = 'en';
+function setLang(l, btn) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (translations[l][key]) el.innerHTML = translations[l][key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (translations[l][key]) el.placeholder = translations[l][key];
+  });
+  // Update select options
+  document.querySelectorAll('option[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (translations[l][key]) el.textContent = translations[l][key];
+  });
+}
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  ['remember','recall','inject'].forEach(t => { document.getElementById('tab-'+t).style.display = 'none'; });
+  document.querySelectorAll('.demo-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+tab).style.display = 'grid';
+  btn.classList.add('active');
+  syncFields();
+}
+
+function syncFields() {
+  const k = document.getElementById('k1').value || document.getElementById('k2').value || document.getElementById('k3').value;
+  const a = document.getElementById('a1').value || document.getElementById('a2').value || document.getElementById('a3').value;
+  ['k1','k2','k3'].forEach(id => { if(document.getElementById(id).value !== k && k) document.getElementById(id).value = k; });
+  ['a1','a2','a3'].forEach(id => { if(document.getElementById(id).value !== a && a) document.getElementById(id).value = a; });
+}
+
+// ── STATUS ───────────────────────────────────────────────────────────────────
+function setStatus(s) {
+  const el = document.getElementById('demoStatus');
+  el.className = 'demo-status ' + (s==='ok'?'s-ok':s==='load'?'s-load':'s-err');
+  el.textContent = s==='ok'?'● LIVE':s==='load'?'◌ LOADING...':'● ERROR';
+}
+
+function fmtJson(obj) {
+  return JSON.stringify(obj, null, 2)
+    .replace(/"([^"]+)":/g, '<span class="rk">"$1"</span>:')
+    .replace(/: "([^"]+)"/g, ': <span class="rv">"$1"</span>')
+    .replace(/: ([\d.]+)/g, ': <span class="rn">$1</span>')
+    .replace(/: (true|false)/g, ': <span style="color:#c084fc">$1</span>');
+}
+
+// ── API CALLS ─────────────────────────────────────────────────────────────────
+async function doRemember() {
+  syncFields();
+  const key = document.getElementById('k1').value.trim();
+  const agentId = document.getElementById('a1').value.trim();
+  const content = document.getElementById('memContent').value.trim();
+  const memType = document.getElementById('memType').value;
+  const el = document.getElementById('res-remember');
+  if(!key || !agentId || !content) { el.innerHTML = '<span style="color:var(--red)">// ' + (lang==='fr'?'Remplissez tous les champs':'Fill in all fields') + '</span>'; return; }
+  setStatus('load');
+  el.innerHTML = '<span style="color:var(--lime)">// ' + (lang==='fr'?'Génération de l\'embedding...':'Generating embedding...') + '</span>';
+  try {
+    const r = await fetch(`${BASE}/api/v1/agents/${agentId}/remember`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-API-Key':key},
+      body: JSON.stringify({content, memory_type: memType})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(JSON.stringify(data));
+    setStatus('ok');
+    el.innerHTML = `<span class="hi">✓ ${lang==='fr'?'Mémoire stockée':'Memory stored'}</span>\n\n` + fmtJson(data);
+    toast(lang==='fr'?'Mémoire stockée ✓':'Memory stored ✓');
+  } catch(e) { setStatus('err'); el.innerHTML = `<span style="color:var(--red)">// Error: ${e.message}</span>`; }
+}
+
+async function doRecall() {
+  syncFields();
+  const key = document.getElementById('k2').value.trim();
+  const agentId = document.getElementById('a2').value.trim();
+  const query = document.getElementById('recallQ').value.trim();
+  const topK = parseInt(document.getElementById('recallK').value);
+  const threshold = parseFloat(document.getElementById('recallT').value);
+  const el = document.getElementById('res-recall');
+  if(!key || !agentId || !query) { el.innerHTML = '<span style="color:var(--red)">// ' + (lang==='fr'?'Remplissez tous les champs':'Fill in all fields') + '</span>'; return; }
+  setStatus('load');
+  el.innerHTML = '<span style="color:var(--lime)">// ' + (lang==='fr'?'Recherche sémantique...':'Searching memories...') + '</span>';
+  try {
+    const r = await fetch(`${BASE}/api/v1/agents/${agentId}/recall`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-API-Key':key},
+      body: JSON.stringify({query, top_k: topK, threshold})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(JSON.stringify(data));
+    setStatus('ok');
+    el.innerHTML = `<span class="hi">✓ ${data.total_found} ${lang==='fr'?'mémoires trouvées':'memories found'}</span>\n\n` + fmtJson(data);
+    toast(`${data.total_found} ${lang==='fr'?'mémoires':'memories'} recalled`);
+  } catch(e) { setStatus('err'); el.innerHTML = `<span style="color:var(--red)">// Error: ${e.message}</span>`; }
+}
+
+async function doInject() {
+  syncFields();
+  const key = document.getElementById('k3').value.trim();
+  const agentId = document.getElementById('a3').value.trim();
+  const message = document.getElementById('injectMsg').value.trim();
+  const threshold = parseFloat(document.getElementById('injectT').value);
+  const el = document.getElementById('res-inject');
+  if(!key || !agentId || !message) { el.innerHTML = '<span style="color:var(--red)">// ' + (lang==='fr'?'Remplissez tous les champs':'Fill in all fields') + '</span>'; return; }
+  setStatus('load');
+  el.innerHTML = '<span style="color:var(--lime)">// ' + (lang==='fr'?'Récupération du contexte...':'Building context block...') + '</span>';
+  try {
+    const r = await fetch(`${BASE}/api/v1/agents/${agentId}/inject-context`, {
+      method:'POST', headers:{'Content-Type':'application/json','X-API-Key':key},
+      body: JSON.stringify({message, threshold})
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(JSON.stringify(data));
+    setStatus('ok');
+    const block = data.context_block || (lang==='fr'?'(aucune mémoire trouvée — baissez le threshold)':'(no memories found — try a lower threshold)');
+    el.innerHTML = `<span class="hi">✓ ${data.memories_used} ${lang==='fr'?'mémoires utilisées':'memories used'}</span>\n\n<span style="color:var(--muted)">${lang==='fr'?'BLOC DE CONTEXTE :':'CONTEXT BLOCK:'}</span>\n<div class="ctx-block">${block}</div>\n<span style="color:var(--muted)">${lang==='fr'?'RÉPONSE COMPLÈTE :':'FULL RESPONSE:'}</span>\n` + fmtJson(data);
+    toast(lang==='fr'?'Bloc de contexte prêt ✓':'Context block ready ✓');
+  } catch(e) { setStatus('err'); el.innerHTML = `<span style="color:var(--red)">// Error: ${e.message}</span>`; }
+}
+
+function scrollTo(id) { document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
