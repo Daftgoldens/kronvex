@@ -188,6 +188,14 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
 .modal-btn-ghost:hover{border-color:var(--muted);color:var(--text)}
 .modal-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(3,3,10,.3);border-top-color:#03030a;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* MEMORY COUNTER */
+.mem-counter{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);padding:0 4px}
+.mem-counter-bar{width:80px;height:4px;background:var(--border2);position:relative;overflow:hidden}
+.mem-counter-fill{height:100%;background:var(--lime);transition:width .4s ease}
+.mem-counter-fill.warn{background:var(--orange)}
+.mem-counter-fill.full{background:var(--red)}
+.mem-counter span{min-width:60px;text-align:right}
 </style>
 </head>
 <body>
@@ -308,6 +316,10 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
         <button class="demo-tab active" onclick="switchTab('remember',this)" data-i18n="tab1">01 REMEMBER</button>
         <button class="demo-tab" onclick="switchTab('recall',this)" data-i18n="tab2">02 RECALL</button>
         <button class="demo-tab" onclick="switchTab('inject',this)" data-i18n="tab3">03 INJECT CONTEXT ★</button>
+      </div>
+      <div id="memCounter" class="mem-counter" style="display:none">
+        <div class="mem-counter-bar"><div class="mem-counter-fill" id="memFill" style="width:0%"></div></div>
+        <span id="memCountLabel">0 / 100</span>
       </div>
       <div id="demoStatus" class="demo-status s-ok">● LIVE</div>
     </div>
@@ -634,6 +646,7 @@ async function doRemember() {
     setStatus('ok');
     el.innerHTML = `<span class="hi">✓ ${lang==='fr'?'Mémoire stockée':'Memory stored'}</span>\n\n` + fmtJson(data);
     toast(lang==='fr'?'Mémoire stockée ✓':'Memory stored ✓');
+    await updateMemCounter();
   } catch(e) { setStatus('err'); el.innerHTML = `<span style="color:var(--red)">// Error: ${e.message}</span>`; }
 }
 
@@ -749,7 +762,14 @@ async function submitDemo() {
       body: JSON.stringify({name, email, usecase})
     });
     const data = await r.json();
-    if(!r.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+    if(!r.ok) {
+      // Parse error message properly
+      let errMsg = '';
+      if(typeof data.detail === 'string') errMsg = data.detail;
+      else if(data.detail && data.detail.message) errMsg = data.detail.message;
+      else errMsg = JSON.stringify(data.detail || data);
+      throw new Error(errMsg);
+    }
 
     // Show success step
     document.getElementById('generatedKey').textContent = data.full_key;
@@ -778,13 +798,20 @@ async function submitDemo() {
     // Pre-fill ALL demo fields
     ['k1','k2','k3'].forEach(id => document.getElementById(id).value = data.full_key);
     ['a1','a2','a3'].forEach(id => document.getElementById(id).value = data.agent_id);
+    // Show counter
+    document.getElementById('memCounter').style.display = 'flex';
+    await updateMemCounter();
 
   } catch(e) {
     let msg = e.message;
-    if(msg.includes('already exists')) {
+    if(msg.includes('already exists') || msg.includes('demo key already')) {
       msg = fr 
-        ? '→ Un email existe déjà pour cette adresse. Contactez-nous pour upgrader.'
-        : '→ A demo key already exists for this email. Contact us to upgrade.';
+        ? '📩 Cet email a déjà une clé démo. Vérifiez votre boîte mail ou écrivez-nous à hello.memvex@gmail.com pour upgrader.'
+        : '📩 This email already has a demo key. Check your inbox or write to hello.memvex@gmail.com to upgrade.';
+    } else if(msg.includes('failed to fetch') || msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      msg = fr
+        ? '⚠ Erreur réseau — vérifiez votre connexion et réessayez.'
+        : '⚠ Network error — check your connection and try again.';
     }
     errEl.textContent = msg;
     btn.innerHTML = fr ? 'OBTENIR MA CLÉ →' : 'GET MY KEY →';
@@ -837,6 +864,35 @@ function goToDemo() {
 const _origSetLang = setLang;
 // patch setLang to also update modal
 
+
+// ── MEMORY COUNTER ──────────────────────────────────────────────────────────
+async function updateMemCounter() {
+  const key = document.getElementById('k1').value || document.getElementById('k2').value || document.getElementById('k3').value;
+  const agentId = document.getElementById('a1').value || document.getElementById('a2').value || document.getElementById('a3').value;
+  if(!key || !agentId) return;
+  try {
+    const r = await fetch(`${BASE}/api/v1/agents/${agentId}`, {
+      headers: {'X-API-Key': key}
+    });
+    if(!r.ok) return;
+    const data = await r.json();
+    const used = data.memory_count || 0;
+    const limit = 100; // demo limit
+    const pct = Math.min((used / limit) * 100, 100);
+    const fill = document.getElementById('memFill');
+    const label = document.getElementById('memCountLabel');
+    const counter = document.getElementById('memCounter');
+    fill.style.width = pct + '%';
+    fill.className = 'mem-counter-fill' + (pct >= 90 ? ' full' : pct >= 70 ? ' warn' : '');
+    label.textContent = `${used} / ${limit}`;
+    label.style.color = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--orange)' : 'var(--muted)';
+    counter.style.display = 'flex';
+    if(pct >= 100) {
+      label.textContent = lang === 'fr' ? '100/100 — LIMITE !' : '100/100 — LIMIT!';
+    }
+  } catch(e) {}
+}
+
 </script>
 
 <!-- MODAL GET API KEY -->
@@ -858,7 +914,7 @@ const _origSetLang = setLang;
         <input class="d-field" id="mEmail" placeholder="baptiste@company.com" type="email" style="margin-bottom:12px">
         <div class="d-label" id="lUsecase">DESCRIBE YOUR AGENT USE CASE</div>
         <textarea class="d-field" id="mUsecase" rows="3" placeholder="e.g. Customer support bot that needs to remember user history across sessions" style="margin-bottom:4px"></textarea>
-        <div id="mError" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);min-height:20px;margin-top:8px"></div>
+        <div id="mError" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);min-height:20px;margin-top:8px;line-height:1.7;padding:0 2px"></div>
       </div>
       <div class="modal-footer">
         <button class="modal-btn modal-btn-ghost" onclick="closeModal()" id="btnCancel">CANCEL</button>
