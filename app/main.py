@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
 from app.router import router
 from app.auth_router import router as auth_router
+from app.stripe_router import router as stripe_router
 
 
 @asynccontextmanager
@@ -15,11 +16,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Memvex",
+    title="Kronvex",
     description="""
 ## Long-term memory for AI agents. 🧠
 
-**Memvex** gives your B2B AI agents persistent memory across sessions.
+**Kronvex** gives your B2B AI agents persistent memory across sessions.
 Three endpoints. One API key. Your agent goes from amnesiac to contextually aware in minutes.
 
 ---
@@ -33,7 +34,7 @@ POST /auth/demo  →  {"name": "...", "email": "...", "usecase": "..."}
 
 **2. Add your key to every request**
 ```
-X-API-Key: sk-mem-xxxxxxxx
+X-API-Key: kv-xxxxxxxx
 ```
 
 **3. Give your agent memory**
@@ -42,11 +43,10 @@ POST /api/v1/agents/{id}/remember       → store a memory
 POST /api/v1/agents/{id}/inject-context → get context block ✨
 ```
     """,
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
-# CORS — doit être AVANT les routers pour couvrir tous les endpoints y compris /auth/*
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -57,8 +57,9 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(router, prefix="/api/v1")
+app.include_router(stripe_router, prefix="/billing", tags=["Billing"])
 
 
 @app.get("/health", tags=["System"])
 async def health():
-    return {"status": "ok", "service": "memvex", "version": "0.2.0"}
+    return {"status": "ok", "service": "kronvex", "version": "0.3.0"}

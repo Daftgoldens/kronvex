@@ -118,6 +118,25 @@ section{padding:96px 40px;position:relative;z-index:2}
 
 /* PRICING */
 .pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);margin-top:56px}
+.plan-btn{width:100%;margin-top:16px;padding:10px;background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.plan-btn:hover{background:var(--border2);color:var(--lime)}
+.plan-btn-hot{background:var(--accent);border-color:var(--accent);color:white}
+.plan-btn-hot:hover{background:var(--indigo-600,#4f46e5);color:white}
+/* Checkout modal */
+.checkout-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center}
+.checkout-overlay.open{display:flex}
+.checkout-box{background:var(--s1);border:1px solid var(--border2);padding:36px;width:100%;max-width:440px;position:relative}
+.checkout-title{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--lime);letter-spacing:3px;margin-bottom:24px}
+.checkout-field{margin-bottom:16px}
+.checkout-field label{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:6px}
+.checkout-field input{width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;box-sizing:border-box}
+.checkout-field input:focus{outline:none;border-color:var(--accent)}
+.checkout-submit{width:100%;padding:13px;background:var(--accent);border:none;color:white;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;margin-top:8px}
+.checkout-submit:hover{background:#4f46e5}
+.checkout-submit:disabled{opacity:.5;cursor:not-allowed}
+.checkout-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.checkout-plan-badge{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);background:var(--s2);border:1px solid var(--border);padding:4px 10px;display:inline-block;margin-bottom:20px}
+.checkout-err{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--red);margin-top:8px;min-height:16px}
 .plan{background:var(--s1);padding:28px 24px;position:relative}
 .plan.hot{background:var(--s2);border-top:2px solid var(--lime);box-shadow:0 0 30px rgba(99,102,241,.15)}
 .plan-hot-badge{position:absolute;top:-1px;right:16px;background:var(--lime);color:#03030a;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;padding:3px 10px;letter-spacing:1px}
@@ -535,6 +554,7 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
       <ul class="plan-feats">
         <li data-i18n="f1-1">1 agent</li><li data-i18n="f1-2">10,000 memories</li><li data-i18n="f1-3">API key access</li><li data-i18n="f1-4">Community support</li>
       </ul>
+      <button class="plan-btn" onclick="openCheckout('price_1T6f7DGz94jECunBR5zOLfpm','starter')" data-i18n="btn-subscribe">SUBSCRIBE →</button>
     </div>
     <div class="plan hot">
       <div class="plan-hot-badge" data-i18n="popular">POPULAR</div>
@@ -544,6 +564,7 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
       <ul class="plan-feats">
         <li data-i18n="f2-1">5 agents</li><li data-i18n="f2-2">100,000 memories</li><li data-i18n="f2-3">Session filtering</li><li data-i18n="f2-4">Priority support</li><li data-i18n="f2-5">99.9% SLA</li>
       </ul>
+      <button class="plan-btn plan-btn-hot" onclick="openCheckout('price_1T6f87Gz94jECunBdUITMLV3','growth')" data-i18n="btn-subscribe">SUBSCRIBE →</button>
     </div>
     <div class="plan">
       <div class="plan-name">SCALE</div>
@@ -552,6 +573,7 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
       <ul class="plan-feats">
         <li data-i18n="f3-1">20 agents</li><li data-i18n="f3-2">Unlimited memories</li><li data-i18n="f3-3">Custom embeddings</li><li data-i18n="f3-4">Dedicated support</li><li data-i18n="f3-5">GDPR DPA</li>
       </ul>
+      <button class="plan-btn" onclick="openCheckout('price_1T6f8RGz94jECunBN5ZBkRA7','scale')" data-i18n="btn-subscribe">SUBSCRIBE →</button>
     </div>
     <div class="plan" style="background:var(--s2)">
       <div class="plan-name">ENTERPRISE</div>
@@ -560,6 +582,7 @@ footer{padding:56px 40px;border-top:1px solid var(--border);display:grid;grid-te
       <ul class="plan-feats">
         <li data-i18n="f4-1">Unlimited agents</li><li data-i18n="f4-2">On-premise option</li><li data-i18n="f4-3">Custom SLA</li><li data-i18n="f4-4">SOC2 in progress</li>
       </ul>
+      <button class="plan-btn" onclick="window.location='mailto:hello@kronvex.io?subject=Enterprise'" data-i18n="btn-contact">CONTACT US →</button>
     </div>
   </div>
 </section>
@@ -666,6 +689,7 @@ const translations = {
     "ft-desc":"Long-term memory infrastructure<br>for B2B AI agents.<br><br>Built in Paris 🇫🇷 · EU data residency<br>GDPR compliant · API v0.2",
     "ft-product":"PRODUCT","ft-how":"How it works","ft-api":"API Reference","ft-demo":"Live Demo","ft-pricing":"Pricing",
     "ft-dev":"DEVELOPERS","ft-docs":"Documentation","ft-status":"Status page","ft-contact":"Contact",
+    "btn-subscribe":"SUBSCRIBE →","btn-contact":"CONTACT US →",
   },
   fr: {
     "nav-tag":"API MÉMOIRE","nav-cta":"OBTENIR UNE CLÉ →",
@@ -714,6 +738,7 @@ const translations = {
     "ft-desc":"Infrastructure mémoire long-terme<br>pour agents IA B2B.<br><br>Construit à Paris 🇫🇷 · Données EU<br>Conforme RGPD · API v0.2",
     "ft-product":"PRODUIT","ft-how":"Comment ça marche","ft-api":"Référence API","ft-demo":"Démo Live","ft-pricing":"Tarifs",
     "ft-dev":"DÉVELOPPEURS","ft-docs":"Documentation","ft-status":"Status","ft-contact":"Contact",
+    "btn-subscribe":"S'ABONNER →","btn-contact":"NOUS CONTACTER →",
   }
 };
 
@@ -1036,6 +1061,63 @@ async function updateMemCounter() {
   } catch(e) {}
 }
 
+// ── CHECKOUT ─────────────────────────────────────────────────────────────
+const API_BASE = 'https://kronvex.up.railway.app';
+const PLAN_LABELS = {starter:'STARTER — €99/mo',growth:'GROWTH — €499/mo',scale:'SCALE — €1,499/mo'};
+let _checkoutPriceId='', _checkoutPlan='';
+
+function openCheckout(priceId, plan) {
+  _checkoutPriceId=priceId; _checkoutPlan=plan;
+  document.getElementById('checkoutBadge').textContent=PLAN_LABELS[plan]||plan.toUpperCase();
+  document.getElementById('checkoutTitle').textContent=lang==='fr'?'S\'ABONNER':'SUBSCRIBE';
+  document.getElementById('checkoutErr').textContent='';
+  document.getElementById('checkoutName').value='';
+  document.getElementById('checkoutEmail').value='';
+  const btn=document.getElementById('checkoutSubmit');
+  btn.disabled=false;
+  btn.textContent=lang==='fr'?'PASSER AU PAIEMENT →':'PROCEED TO PAYMENT →';
+  document.getElementById('checkoutOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeCheckout() {
+  document.getElementById('checkoutOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function closeCheckoutOutside(e) {
+  if(e.target===document.getElementById('checkoutOverlay'))closeCheckout();
+}
+async function submitCheckout() {
+  const name=document.getElementById('checkoutName').value.trim();
+  const email=document.getElementById('checkoutEmail').value.trim();
+  const err=document.getElementById('checkoutErr');
+  const btn=document.getElementById('checkoutSubmit');
+  if(!name){err.textContent='→ Name is required';return;}
+  if(!email||!email.includes('@')){err.textContent='→ Valid email required';return;}
+  btn.disabled=true; btn.textContent='LOADING...'; err.textContent='';
+  try {
+    const res=await fetch(`${API_BASE}/billing/checkout`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({price_id:_checkoutPriceId,customer_email:email,customer_name:name}),
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.detail||'Server error');
+    window.location.href=data.checkout_url;
+  } catch(e) {
+    err.textContent='→ '+e.message;
+    btn.disabled=false;
+    btn.textContent=lang==='fr'?'PASSER AU PAIEMENT →':'PROCEED TO PAYMENT →';
+  }
+}
+
+// Init example blocks on first load
+window.addEventListener('load',function(){
+  ['ex-bad-content','ex-good-content'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el&&translations['en'][id])el.innerHTML=translations['en'][id];
+  });
+});
+
 </script>
 
 <!-- MODAL GET API KEY -->
@@ -1087,6 +1169,30 @@ async function updateMemCounter() {
       <div class="modal-footer">
         <button class="modal-btn modal-btn-primary" onclick="goToDemo()" id="btnTryNow">TRY IT NOW →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECKOUT MODAL -->
+<div class="checkout-overlay" id="checkoutOverlay" onclick="closeCheckoutOutside(event)">
+  <div class="checkout-box">
+    <button class="checkout-close" onclick="closeCheckout()">×</button>
+    <div class="checkout-title" id="checkoutTitle">SUBSCRIBE</div>
+    <div class="checkout-plan-badge" id="checkoutBadge">STARTER — €99/mo</div>
+    <div class="checkout-field">
+      <label>YOUR NAME</label>
+      <input type="text" id="checkoutName" placeholder="Alice Martin" autocomplete="name">
+    </div>
+    <div class="checkout-field">
+      <label>EMAIL — your API key will be sent here</label>
+      <input type="email" id="checkoutEmail" placeholder="alice@company.com" autocomplete="email">
+    </div>
+    <div class="checkout-err" id="checkoutErr"></div>
+    <button class="checkout-submit" id="checkoutSubmit" onclick="submitCheckout()">
+      PROCEED TO PAYMENT →
+    </button>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--muted);margin-top:14px;text-align:center">
+      Powered by Stripe · Cancel anytime · EU data residency
     </div>
   </div>
 </div>
